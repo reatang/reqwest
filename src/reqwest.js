@@ -217,6 +217,11 @@
     http = (o.xhr && o.xhr(o)) || xhr(o)
 
     http.open(method, url, o['async'] === false ? false : true)
+    
+    if (o['responseType']) {
+      http.responseType = o['responseType']
+    }
+    
     setHeaders(http, o)
     setCredentials(http, o)
     if (context[xDomainRequest] && http instanceof context[xDomainRequest]) {
@@ -314,9 +319,10 @@
       var type = o['type'] || resp && setType(resp.getResponseHeader('Content-Type')) // resp can be undefined in IE
       resp = (type !== 'jsonp') ? self.request : resp
       // use global data filter on response text
-      var filteredResponse = globalSetupOptions.dataFilter(resp.responseText, type)
-        , r = filteredResponse
       try {
+        var filteredResponse = globalSetupOptions.dataFilter(resp.responseText, type)
+        , r = filteredResponse
+      
         resp.responseText = r
       } catch (e) {
         // can't assign this in IE<=8, just ignore
