@@ -217,9 +217,9 @@
     http = (o.xhr && o.xhr(o)) || xhr(o)
 
     http.open(method, url, o['async'] === false ? false : true)
-    
-    if (o['responseType']) {
-      http.responseType = o['responseType']
+
+    if (['blob', 'arraybuffer', 'document'].indexOf(o['type']) >= 0) {
+      http.responseType = o['type']
     }
     
     setHeaders(http, o)
@@ -317,11 +317,12 @@
 
     function success (resp) {
       var type = o['type'] || resp && setType(resp.getResponseHeader('Content-Type')) // resp can be undefined in IE
+      , r
       resp = (type !== 'jsonp') ? self.request : resp
       // use global data filter on response text
       try {
         var filteredResponse = globalSetupOptions.dataFilter(resp.responseText, type)
-        , r = filteredResponse
+        r = filteredResponse
       
         resp.responseText = r
       } catch (e) {

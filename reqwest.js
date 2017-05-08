@@ -12,7 +12,7 @@
 
   var context = this
 
-  if ('window' in context) {
+  if ('document' in context) {
     var doc = document
       , byTag = 'getElementsByTagName'
       , head = doc[byTag]('head')[0]
@@ -24,7 +24,6 @@
       throw new Error('Peer dependency `xhr2` required! Please npm install xhr2')
     }
   }
-
 
   var httpsRe = /^http/
     , protocolRe = /(^\w+):\/\//
@@ -65,6 +64,11 @@
           if (xhr && 'withCredentials' in xhr) {
             return xhr
           } else if (context[xDomainRequest]) {
+            var protocolRegExp = /^https?/;
+            if (window.location.href.match(protocolRegExp)[0] !== o.url.match(protocolRegExp)[0]) {
+              throw new Error('XDomainRequest: requests must be targeted to the same scheme as the hosting page.')
+              // As per: http://blogs.msdn.com/b/ieinternals/archive/2010/05/13/xdomainrequest-restrictions-limitations-and-workarounds.aspx
+            }
             return new XDomainRequest()
           } else {
             throw new Error('Browser does not support cross-origin requests')
@@ -219,6 +223,11 @@
     http = (o.xhr && o.xhr(o)) || xhr(o)
 
     http.open(method, url, o['async'] === false ? false : true)
+
+    if (['blob', 'arraybuffer', 'document'].indexOf(o['type']) >= 0) {
+      http.responseType = o['type']
+    }
+    
     setHeaders(http, o)
     setCredentials(http, o)
     if (context[xDomainRequest] && http instanceof context[xDomainRequest]) {
@@ -314,11 +323,13 @@
 
     function success (resp) {
       var type = o['type'] || resp && setType(resp.getResponseHeader('Content-Type')) // resp can be undefined in IE
+      , r
       resp = (type !== 'jsonp') ? self.request : resp
       // use global data filter on response text
-      var filteredResponse = globalSetupOptions.dataFilter(resp.responseText, type)
-        , r = filteredResponse
       try {
+        var filteredResponse = globalSetupOptions.dataFilter(resp.responseText, type)
+        r = filteredResponse
+      
         resp.responseText = r
       } catch (e) {
         // can't assign this in IE<=8, just ignore
